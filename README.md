@@ -129,6 +129,31 @@ Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: require-corp
 ```
 
+#### Cloudflare Pages 部署配置（推荐）
+
+项目已包含 `public/_headers` 和 `wrangler.toml` 配置文件，可一键部署到 Cloudflare Pages。
+
+**优势**：
+- 免费无限带宽
+- 全球 CDN 加速（300+ 节点）
+- 自动 HTTPS
+- 支持自定义域名
+
+**快速部署**：
+```bash
+# 安装 Wrangler CLI
+pnpm add -g wrangler
+
+# 登录 Cloudflare
+wrangler login
+
+# 构建并部署
+pnpm build
+wrangler pages deploy dist
+```
+
+详细部署指南请查看 [CLOUDFLARE_PAGES_DEPLOYMENT.md](./CLOUDFLARE_PAGES_DEPLOYMENT.md)
+
 #### Vercel 部署配置
 
 项目根目录已包含 `vercel.json` 配置文件，可直接部署到 Vercel。

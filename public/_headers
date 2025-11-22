@@ -1,0 +1,91 @@
+# Cloudflare Pages 响应头配置
+# 文档: https://developers.cloudflare.com/pages/platform/headers/
+
+# 全局响应头 - 所有页面都需要这些头以支持 SharedArrayBuffer（FFmpeg.wasm 需要）
+/*
+  # 跨域隔离（Cross-Origin Isolation）- FFmpeg.wasm 必需
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+
+  # 安全响应头
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+
+  # 权限策略 - 限制浏览器功能访问
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+
+# 静态资源缓存策略 - 构建生成的 JS/CSS 文件
+/assets/*
+  # 长期缓存（1 年），这些文件名包含哈希值，内容变化时文件名会变
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML 文件 - 不缓存，确保用户总能获取最新版本
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# 根路径 HTML
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+# PWA 相关文件 - 短期缓存
+/manifest.json
+  Cache-Control: public, max-age=3600
+  Content-Type: application/manifest+json
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: application/javascript
+
+/robots.txt
+  Cache-Control: public, max-age=86400
+
+# Favicon 和图标 - 中期缓存
+/favicon.ico
+  Cache-Control: public, max-age=86400
+
+/favicon/*
+  Cache-Control: public, max-age=86400
+
+# 字体文件 - 长期缓存
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.ttf
+  Cache-Control: public, max-age=31536000, immutable
+
+# 图片资源 - 长期缓存
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpeg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.gif
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+
+# 视频和音频文件示例 - 根据需要调整
+/*.mp4
+  Cache-Control: public, max-age=86400
+
+/*.webm
+  Cache-Control: public, max-age=86400
+
+/*.mp3
+  Cache-Control: public, max-age=86400
+
+/*.wav
+  Cache-Control: public, max-age=86400

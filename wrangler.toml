@@ -1,0 +1,20 @@
+# Cloudflare Pages 项目配置
+# 文档: https://developers.cloudflare.com/pages/platform/wrangler/
+
+# 项目名称（使用时请修改为你的项目名称）
+name = "simple-media-convertor"
+
+# 兼容性日期 - 使用最新的 Workers 运行时特性
+compatibility_date = "2024-01-01"
+
+# Pages 配置
+pages_build_output_dir = "dist"
+
+# 注意事项:
+# 1. 部署前请将 name 修改为你的实际项目名称
+# 2. 对于 Pages 项目，主要通过以下命令部署:
+#    wrangler pages deploy dist --project-name=simple-media-convertor
+# 3. 构建命令使用: pnpm build
+# 4. 响应头配置请参考 public/_headers 文件
+# 5. 环境变量在 Cloudflare Dashboard 的项目设置中配置，或使用:
+#    wrangler pages secret put <KEY>
