@@ -1,0 +1,277 @@
+import { useState, useRef, useEffect } from 'react';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+type OutputFormat = 'mp3' | 'wav';
+
+export default function AudioVideoConverter() {
+  const [loaded, setLoaded] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('mp3');
+  const [converting, setConverting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [message, setMessage] = useState('');
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+
+  const ffmpegRef = useRef<FFmpeg | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // 只在客户端创建 FFmpeg 实例
+    if (!ffmpegRef.current) {
+      ffmpegRef.current = new FFmpeg();
+      load();
+    }
+  }, []);
+
+  const load = async () => {
+    const ffmpeg = ffmpegRef.current;
+    if (!ffmpeg) return;
+
+    try {
+      // 检查浏览器是否支持 SharedArrayBuffer
+      if (typeof SharedArrayBuffer === 'undefined') {
+        setMessage('❌ 浏览器不支持 SharedArrayBuffer，请使用 Chrome、Edge 或 Firefox 浏览器');
+        console.error('SharedArrayBuffer is not available');
+        return;
+      }
+
+      // 检查跨域隔离是否启用
+      if (!crossOriginIsolated) {
+        setMessage('❌ 跨域隔离未启用，请检查服务器配置或刷新页面重试');
+        console.error('Cross-origin isolation is not enabled');
+        return;
+      }
+
+      setMessage('正在加载 FFmpeg...(首次加载需下载约 30MB 文件)');
+
+      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      });
+
+      ffmpeg.on('progress', ({ progress: p }) => {
+        setProgress(Math.round(p * 100));
+      });
+
+      setLoaded(true);
+      setMessage('✅ FFmpeg 已准备就绪');
+    } catch (error) {
+      console.error('加载 FFmpeg 失败:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setMessage(`❌ 加载失败: ${errorMessage}。请检查网络连接或刷新页面重试`);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setDownloadUrl(null);
+      setProgress(0);
+      setMessage(`已选择文件: ${selectedFile.name}`);
+    }
+  };
+
+  const handleConvert = async () => {
+    if (!file || !loaded) return;
+
+    const ffmpeg = ffmpegRef.current;
+    if (!ffmpeg) return;
+
+    setConverting(true);
+    setProgress(0);
+    setDownloadUrl(null);
+
+    try {
+      setMessage('正在转码...');
+
+      const inputFileName = 'input' + file.name.substring(file.name.lastIndexOf('.'));
+      const outputFileName = `output.${outputFormat}`;
+
+      await ffmpeg.writeFile(inputFileName, await fetchFile(file));
+
+      const ffmpegArgs = [
+        '-i', inputFileName,
+        '-vn',
+        '-ar', '44100',
+        '-ac', '2',
+        '-b:a', '192k',
+        outputFileName
+      ];
+
+      await ffmpeg.exec(ffmpegArgs);
+
+      const data = await ffmpeg.readFile(outputFileName) as Uint8Array;
+      const blob = new Blob([new Uint8Array(data)], {
+        type: outputFormat === 'mp3' ? 'audio/mpeg' : 'audio/wav'
+      });
+      const url = URL.createObjectURL(blob);
+
+      setDownloadUrl(url);
+      setMessage('转码完成！');
+      setProgress(100);
+
+      await ffmpeg.deleteFile(inputFileName);
+      await ffmpeg.deleteFile(outputFileName);
+    } catch (error) {
+      console.error('转码失败:', error);
+      setMessage('转码失败，请检查文件格式');
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!downloadUrl || !file) return;
+
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = file.name.replace(/\.[^/.]+$/, `.${outputFormat}`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const supportedFormats = [
+    'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'webm',
+    'mp3', 'wav', 'aac', 'm4a', 'flac', 'ogg', 'wma'
+  ];
+
+  return (
+    <div className="w-full max-w-2xl mx-auto p-4 md:p-6">
+      <Card className="shadow-lg">
+        <CardHeader className="space-y-2">
+          <CardTitle className="text-2xl md:text-3xl text-center">
+            音视频转码工具
+          </CardTitle>
+          <CardDescription className="text-center text-sm md:text-base">
+            浏览器端转换音视频为 MP3/WAV 格式
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* 状态信息 */}
+          <div className="space-y-2">
+            <div className="text-center">
+              <p className="text-sm md:text-base text-muted-foreground">
+                {message}
+              </p>
+            </div>
+
+            {/* 环境诊断信息 */}
+            <details className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
+              <summary className="cursor-pointer hover:text-foreground">
+                诊断信息（点击查看）
+              </summary>
+              <div className="mt-2 space-y-1">
+                <div>浏览器: {typeof navigator !== 'undefined' ? navigator.userAgent.split(/[()]/).filter(Boolean)[1] || 'Unknown' : 'Unknown'}</div>
+                <div>SharedArrayBuffer: {typeof SharedArrayBuffer !== 'undefined' ? '✅ 支持' : '❌ 不支持'}</div>
+                <div>跨域隔离: {typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated ? '✅ 已启用' : '❌ 未启用'}</div>
+                <div>WebAssembly: {typeof WebAssembly !== 'undefined' ? '✅ 支持' : '❌ 不支持'}</div>
+              </div>
+            </details>
+          </div>
+
+          {/* 文件选择 */}
+          <div className="space-y-4">
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileChange}
+                accept={supportedFormats.map(f => `.${f}`).join(',')}
+                className="hidden"
+                disabled={!loaded}
+              />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!loaded}
+                variant="outline"
+                className="w-full h-12 md:h-14 text-base md:text-lg"
+              >
+                {file ? `已选择: ${file.name}` : '选择音视频文件'}
+              </Button>
+            </div>
+
+            {/* 支持的格式提示 */}
+            <p className="text-xs md:text-sm text-center text-muted-foreground">
+              支持格式: {supportedFormats.join(', ')}
+            </p>
+          </div>
+
+          {/* 输出格式选择 */}
+          {file && (
+            <div className="space-y-2">
+              <label className="text-sm md:text-base font-medium">
+                输出格式
+              </label>
+              <Select
+                value={outputFormat}
+                onValueChange={(value) => setOutputFormat(value as OutputFormat)}
+                disabled={converting}
+              >
+                <SelectTrigger className="w-full h-12 md:h-14 text-base">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mp3">MP3</SelectItem>
+                  <SelectItem value="wav">WAV</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* 进度条 */}
+          {converting && (
+            <div className="space-y-2">
+              <Progress value={progress} className="w-full" />
+              <p className="text-center text-sm text-muted-foreground">
+                {progress}%
+              </p>
+            </div>
+          )}
+
+          {/* 操作按钮 */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={handleConvert}
+              disabled={!file || !loaded || converting}
+              className="flex-1 h-12 md:h-14 text-base md:text-lg"
+            >
+              {converting ? '转码中...' : '开始转码'}
+            </Button>
+
+            {downloadUrl && (
+              <Button
+                onClick={handleDownload}
+                variant="secondary"
+                className="flex-1 h-12 md:h-14 text-base md:text-lg"
+              >
+                下载文件
+              </Button>
+            )}
+          </div>
+
+          {/* 说明文字 */}
+          <div className="bg-muted rounded-lg p-4 space-y-2">
+            <p className="text-xs md:text-sm text-muted-foreground">
+              <strong>💡 提示:</strong>
+            </p>
+            <ul className="text-xs md:text-sm text-muted-foreground space-y-1 list-disc list-inside">
+              <li>所有处理均在浏览器本地完成，不会上传到服务器</li>
+              <li>首次加载需要下载 FFmpeg 核心文件（约 30MB）</li>
+              <li>大文件转码可能需要较长时间，请耐心等待</li>
+              <li>建议使用现代浏览器（Chrome、Edge、Firefox）</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

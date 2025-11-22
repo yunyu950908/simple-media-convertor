@@ -1,0 +1,21 @@
+{
+  "name": "音视频转码工具",
+  "short_name": "转码工具",
+  "description": "免费在线音视频转码工具，支持多种格式转换为 MP3 或 WAV",
+  "icons": [
+    {
+      "src": "/favicon/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#18181b",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/"
+}
