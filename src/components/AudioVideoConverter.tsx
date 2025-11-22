@@ -270,6 +270,127 @@ export default function AudioVideoConverter() {
               <li>建议使用现代浏览器（Chrome、Edge、Firefox）</li>
             </ul>
           </div>
+
+          {/* SharedArrayBuffer 重要性说明 */}
+          {!loaded && (typeof SharedArrayBuffer === 'undefined' || !crossOriginIsolated) && (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-4 space-y-3">
+              <h3 className="text-sm md:text-base font-semibold text-amber-900 dark:text-amber-100">
+                ⚠️ 为什么需要 SharedArrayBuffer？
+              </h3>
+
+              <p className="text-xs md:text-sm text-amber-800 dark:text-amber-200">
+                本工具使用先进的 WebAssembly 多线程技术，需要浏览器支持 <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">SharedArrayBuffer</code>。
+                这项技术对<strong>隐私安全</strong>和<strong>性能</strong>至关重要。
+              </p>
+
+              {/* 方案对比表格 */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-amber-100 dark:bg-amber-900/40">
+                      <th className="border border-amber-200 dark:border-amber-800 p-2 text-left">方案</th>
+                      <th className="border border-amber-200 dark:border-amber-800 p-2 text-center">隐私性</th>
+                      <th className="border border-amber-200 dark:border-amber-800 p-2 text-center">转码速度</th>
+                      <th className="border border-amber-200 dark:border-amber-800 p-2 text-center">功能支持</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-amber-900 dark:text-amber-100">
+                    <tr className="bg-green-50 dark:bg-green-950/20">
+                      <td className="border border-amber-200 dark:border-amber-800 p-2">
+                        <strong>FFmpeg + SAB</strong>
+                        <br />
+                        <span className="text-[10px] text-muted-foreground">(本工具)</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-green-600 dark:text-green-400">✅ 完全本地</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-green-600 dark:text-green-400">⚡ 快速</span>
+                        <br />
+                        <span className="text-[10px]">(5-10x)</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-green-600 dark:text-green-400">✅ 完整</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2">
+                        <strong>旧版 FFmpeg</strong>
+                        <br />
+                        <span className="text-[10px] text-muted-foreground">(无 SAB)</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-green-600 dark:text-green-400">✅ 完全本地</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-orange-600 dark:text-orange-400">🐌 较慢</span>
+                        <br />
+                        <span className="text-[10px]">(2-3x)</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-green-600 dark:text-green-400">✅ 完整</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2">
+                        <strong>lamejs</strong>
+                        <br />
+                        <span className="text-[10px] text-muted-foreground">(纯 JS 库)</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-green-600 dark:text-green-400">✅ 完全本地</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-red-600 dark:text-red-400">🐢 极慢</span>
+                        <br />
+                        <span className="text-[10px]">(0.1x)</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-red-600 dark:text-red-400">❌ 仅 MP3</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2">
+                        <strong>服务端转码</strong>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-red-600 dark:text-red-400">⚠️ 需上传</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-green-600 dark:text-green-400">⚡ 快速</span>
+                      </td>
+                      <td className="border border-amber-200 dark:border-amber-800 p-2 text-center">
+                        <span className="text-green-600 dark:text-green-400">✅ 完整</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="space-y-2 text-xs md:text-sm">
+                <p className="text-amber-800 dark:text-amber-200">
+                  <strong>推荐操作：</strong>
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-amber-700 dark:text-amber-300 ml-2">
+                  <li>
+                    <strong>使用最新版浏览器：</strong>Chrome、Firefox、Edge 或 Safari
+                  </li>
+                  <li className="mt-2">
+                    <strong>检查网站部署配置：</strong>确保服务器已设置正确的 HTTP 响应头：
+                    <ul className="list-disc list-inside ml-6 mt-1">
+                      <li><code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">Cross-Origin-Opener-Policy: same-origin</code></li>
+                      <li><code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">Cross-Origin-Embedder-Policy: require-corp</code></li>
+                    </ul>
+                  </li>
+                  <li className="mt-2">刷新页面重试</li>
+                </ol>
+              </div>
+
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 italic">
+                💡 这些限制是浏览器为了保护您的数据安全而设计的。本工具绝不会将您的文件上传到服务器。
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
