@@ -77,7 +77,17 @@ NODE_VERSION=18
 
 ### 方法二：通过 Wrangler CLI 部署
 
-#### 1. 安装 Wrangler
+#### 1. 配置项目名称
+
+项目根目录已包含 `wrangler.toml` 配置文件。首次部署前，请修改其中的项目名称：
+
+```toml
+# wrangler.toml
+name = "simple-media-convertor"  # 修改为你的项目名称
+pages_build_output_dir = "dist"
+```
+
+#### 2. 安装 Wrangler
 
 ```bash
 npm install -g wrangler
@@ -85,7 +95,7 @@ npm install -g wrangler
 pnpm add -g wrangler
 ```
 
-#### 2. 登录 Cloudflare
+#### 3. 登录 Cloudflare
 
 ```bash
 wrangler login
@@ -93,26 +103,21 @@ wrangler login
 
 这会打开浏览器完成 OAuth 授权。
 
-#### 3. 构建项目
+#### 4. 构建项目
 
 ```bash
 pnpm build
 ```
 
-#### 4. 部署到 Pages
+#### 5. 部署到 Pages
 
 ```bash
 wrangler pages deploy dist
 ```
 
-首次部署时，会提示创建项目：
+**注意**：由于项目已包含 `wrangler.toml` 配置文件，部署时会自动使用配置文件中的项目名称，无需交互式输入。
 
-```bash
-? Enter the name of your new project: › lovemo-file-convertor
-? Enter the production branch name: › main
-```
-
-#### 5. 后续部署
+#### 6. 后续部署
 
 ```bash
 # 生产环境部署
