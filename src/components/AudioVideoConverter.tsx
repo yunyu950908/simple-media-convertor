@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useDropzone } from 'react-dropzone';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,6 @@ export default function AudioVideoConverter() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
   const ffmpegRef = useRef<FFmpeg | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // 只在客户端创建 FFmpeg 实例
@@ -84,8 +84,9 @@ export default function AudioVideoConverter() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+  // 使用 react-dropzone 处理文件拖拽
+  const onDrop = (acceptedFiles: File[]) => {
+    const selectedFile = acceptedFiles[0];
     if (selectedFile) {
       setFile(selectedFile);
       setDownloadUrl(null);
@@ -93,6 +94,22 @@ export default function AudioVideoConverter() {
       setMessage(`已选择文件: ${selectedFile.name}`);
     }
   };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'video/*': ['.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.webm'],
+      'audio/*': ['.mp3', '.wav', '.aac', '.m4a', '.flac', '.ogg', '.wma'],
+    },
+    multiple: false,
+    disabled: !loaded || converting,
+    onDropRejected: (fileRejections) => {
+      const rejection = fileRejections[0];
+      if (rejection) {
+        setMessage(`❌ 不支持的文件格式。支持的格式：${supportedFormats.join(', ')}`);
+      }
+    },
+  });
 
   const handleConvert = async () => {
     if (!file || !loaded) return;
@@ -201,25 +218,47 @@ export default function AudioVideoConverter() {
             </details>
           </div>
 
-          {/* 文件选择 */}
+          {/* 文件选择 - 支持拖拽 */}
           <div className="space-y-4">
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileChange}
-                accept={supportedFormats.map(f => `.${f}`).join(',')}
-                className="hidden"
-                disabled={!loaded}
-              />
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!loaded}
-                variant="outline"
-                className="w-full h-12 md:h-14 text-base md:text-lg"
-              >
-                {file ? `已选择: ${file.name}` : '选择音视频文件'}
-              </Button>
+            <div
+              {...getRootProps()}
+              className={`
+                relative border-2 border-dashed rounded-lg p-8 transition-all cursor-pointer
+                ${isDragActive
+                  ? 'border-primary bg-primary/10 scale-105'
+                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-accent/50'
+                }
+                ${!loaded || converting ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+            >
+              <input {...getInputProps()} />
+
+              <div className="flex flex-col items-center justify-center space-y-3 text-center">
+                <div className={`text-4xl transition-transform ${isDragActive ? 'scale-125' : ''}`}>
+                  {isDragActive ? '📥' : '📁'}
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-base md:text-lg font-medium">
+                    {isDragActive ? '释放以加载文件' : file ? file.name : '拖拽文件到此处'}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    {!isDragActive && !file && '或点击选择文件（仅本地处理）'}
+                  </p>
+                </div>
+
+                {!file && !isDragActive && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    disabled={!loaded}
+                  >
+                    浏览文件
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* 支持的格式提示 */}
