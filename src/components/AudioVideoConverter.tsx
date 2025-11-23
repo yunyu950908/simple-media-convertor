@@ -7,11 +7,27 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type OutputFormat = 'mp3' | 'wav';
+type QualityLevel = 'low' | 'medium' | 'high';
+
+// 品质配置
+const QUALITY_SETTINGS = {
+  mp3: {
+    low: { bitrate: '128k', sampleRate: '44100', label: '低品质 (128kbps, 文件更小)' },
+    medium: { bitrate: '192k', sampleRate: '44100', label: '中品质 (192kbps, 推荐)' },
+    high: { bitrate: '320k', sampleRate: '44100', label: '高品质 (320kbps, 接近无损)' },
+  },
+  wav: {
+    low: { sampleRate: '32000', label: '低品质 (32kHz)' },
+    medium: { sampleRate: '44100', label: '中品质 (44.1kHz, CD 标准)' },
+    high: { sampleRate: '48000', label: '高品质 (48kHz, 专业音频)' },
+  },
+} as const;
 
 export default function AudioVideoConverter() {
   const [loaded, setLoaded] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('mp3');
+  const [quality, setQuality] = useState<QualityLevel>('medium');
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
@@ -96,14 +112,21 @@ export default function AudioVideoConverter() {
 
       await ffmpeg.writeFile(inputFileName, await fetchFile(file));
 
+      // 根据选择的格式和品质构建 FFmpeg 参数
+      const qualityConfig = QUALITY_SETTINGS[outputFormat][quality];
       const ffmpegArgs = [
         '-i', inputFileName,
-        '-vn',
-        '-ar', '44100',
-        '-ac', '2',
-        '-b:a', '192k',
-        outputFileName
+        '-vn', // 移除视频流
+        '-ar', qualityConfig.sampleRate, // 采样率
+        '-ac', '2', // 立体声
       ];
+
+      // 仅对 MP3 格式添加比特率参数
+      if (outputFormat === 'mp3' && 'bitrate' in qualityConfig) {
+        ffmpegArgs.push('-b:a', qualityConfig.bitrate);
+      }
+
+      ffmpegArgs.push(outputFileName);
 
       await ffmpeg.exec(ffmpegArgs);
 
@@ -207,23 +230,52 @@ export default function AudioVideoConverter() {
 
           {/* 输出格式选择 */}
           {file && (
-            <div className="space-y-2">
-              <label className="text-sm md:text-base font-medium">
-                输出格式
-              </label>
-              <Select
-                value={outputFormat}
-                onValueChange={(value) => setOutputFormat(value as OutputFormat)}
-                disabled={converting}
-              >
-                <SelectTrigger className="w-full h-12 md:h-14 text-base">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mp3">MP3</SelectItem>
-                  <SelectItem value="wav">WAV</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm md:text-base font-medium">
+                  输出格式
+                </label>
+                <Select
+                  value={outputFormat}
+                  onValueChange={(value) => setOutputFormat(value as OutputFormat)}
+                  disabled={converting}
+                >
+                  <SelectTrigger className="w-full h-12 md:h-14 text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mp3">MP3</SelectItem>
+                    <SelectItem value="wav">WAV</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 品质选择 */}
+              <div className="space-y-2">
+                <label className="text-sm md:text-base font-medium">
+                  输出品质
+                </label>
+                <Select
+                  value={quality}
+                  onValueChange={(value) => setQuality(value as QualityLevel)}
+                  disabled={converting}
+                >
+                  <SelectTrigger className="w-full h-12 md:h-14 text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">
+                      {QUALITY_SETTINGS[outputFormat].low.label}
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      {QUALITY_SETTINGS[outputFormat].medium.label}
+                    </SelectItem>
+                    <SelectItem value="high">
+                      {QUALITY_SETTINGS[outputFormat].high.label}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
